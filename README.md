@@ -1,0 +1,4 @@
+# netty_websocket
+一个基于netty开发的websocket服务器demo，用Spring整合
+# 运行
+git clone下来后用IDEA打开，用maven下载好依赖包后，直接启动Spring。打开test.html连接本地websocket服务器即可看到效果
