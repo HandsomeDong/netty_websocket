@@ -32,12 +32,6 @@
       <version>4.1.29.Final</version>
     </dependency>
 
-<!--    protobuf相关-->
-    <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
-      <version>3.11.0</version>
-    </dependency>
   </dependencies>
 
   <build>
