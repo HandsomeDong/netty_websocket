@@ -35,11 +35,14 @@ public class WebSocketServer {
                 @Override
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
                     socketChannel.pipeline()
-                            .addLast(new LoggingHandler(LogLevel.TRACE)).addLast(new HttpServerCodec())
-                            .addLast(new ChunkedWriteHandler()).addLast(new HttpObjectAggregator(10240))
+                            .addLast(new LoggingHandler(LogLevel.TRACE))
+                            .addLast(new HttpServerCodec())
+                            .addLast(new ChunkedWriteHandler())
+                            .addLast(new HttpObjectAggregator(10240))
                             .addLast(new WebSocketServerCompressionHandler())
+                            .addLast(new ByteToMessageDecoder())
                             .addLast(new WebSocketServerProtocolHandler("/chat", null, true, 10485760))
-                            .addLast(new TextWebSocketHandler()).addLast(new BinaryWebSocketHandler());
+                            .addLast(new MyHandler());
                 }
             });
             ChannelFuture channelFuture = b.bind(port).sync();

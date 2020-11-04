@@ -1,8 +1,9 @@
 <html>
 <head lang="zh-cn">
     <meta charset="utf-8">
-    <title>七里翔黄色聊天室</title>
+    <title>七里翔聊天室</title>
     <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="../js/message.js"></script>
 </head>
 <body>
 <form onsubmit="return false;">
@@ -10,7 +11,7 @@
     <div style="border: 1px solid #CCC;height: 300px;overflow: scroll" id="server-msg-container"></div>
     <p>
         <input type="text" id="message-input" name="message" value="七里翔"/>
-        <input type="button" value="发送" onclick="send(this.form.message.value)"/>
+        <input type="button" value="发送" onclick="sendText(this.form.message.value)"/>
         <input type="button" value="3连发" onclick="send3(this.form.message.value)"/>
         <input type="button" value="10连发" onclick="send10(this.form.message.value)"/>
 </form>
@@ -26,39 +27,30 @@
     }
     if (window.WebSocket) {
         socket = new WebSocket("ws://127.0.0.1:9999/chat");
+        socket.binaryType = 'arraybuffer';
         socket.onmessage = function (ev) {
-            var inpMsg = document.getElementById("server-msg-container");
-            if (typeof  ev.data === "string") {
-                // inpMsg.innerHTML += ev.data + "<br/>";
-                var data = JSON.parse(ev.data);
-                if (data.user === "system") {
-                    inpMsg.innerHTML += data.msg + "<br/>"
-                } else {
-                    inpMsg.innerHTML += data.user + "说：" + data.msg + "<br/>"
-                }
-                inpMsg.scrollTop = inpMsg.scrollHeight;
+            let inpMsg = document.getElementById("server-msg-container");
+            let arrayBuffer = ev.data;
+            let response = proto.responseMsg.deserializeBinary(arrayBuffer);
+            if (response.getType() === 0) {
+                inpMsg.innerHTML += response.getTextdata() + "<br/>"
+            } else if (response.getType() === 1) {
+                inpMsg.innerHTML += response.getUsername() + "说：" + response.getTextdata() + "<br/>"
             } else {
-                var result = ev.data;
-                var flagReader = new FileReader();
-                flagReader.readAsArrayBuffer(result.slice(0, 4));
-                flagReader.onload = function () {
-                    var imageReader = new FileReader();
-                    imageReader.onload = function (img) {
-                        var reader = new FileReader();
-                        reader.onload = function(){
-                            var str = reader.result;
-                            var imgHtml = "<p>" + str.split("\\\\\\///")[1] + "发送了图片：</p><img src='" + img.target.result + "' style='width: 100px;height: 100px;'>";
-                            inpMsg.innerHTML += imgHtml.replace("data:application/octet-stream;", "data:image/png;") + "<br/>";
-                            inpMsg.scrollTop = inpMsg.scrollHeight;
-                        };
-                        reader.readAsText(result);
-                    };
-                    imageReader.readAsDataURL(result.slice(4));
-                };
+                let picData = response.getPicdata();
+                let blob = new Blob([picData]);
+                let imageUrl = (window.URL || window.webkitURL).createObjectURL(blob);
+                console.log(imageUrl);
+                let imgHtml = "<p>" + response.getUsername() + "发送了图片：</p><img src='" + imageUrl + "' style='width: 100px;height: 100px;'>";
+                inpMsg.innerHTML += imgHtml.replace("data:application/octet-stream;", "data:image/png;") + "<br/>";
             }
+            inpMsg.scrollTop = inpMsg.scrollHeight;
         };
         socket.onopen = function (event) {
-            socket.send("YlcK3yD86ll1TjvzQymOAUHyheynJeBf");
+            var msg = new proto.requestMsg();
+            msg.setType(0);
+            msg.setToken("YlcK3yD86ll1TjvzQymOAUHyheynJeBf");
+            socket.send(msg.serializeBinary());
             alert("进入七里翔聊天室");
         };
         socket.onclose = function (event) {
@@ -66,7 +58,7 @@
         };
     }
 
-    function send(message) {
+    function sendText(message) {
         if (!window.WebSocket) {
             return;
         }
@@ -74,7 +66,10 @@
             return;
         }
         if (socket.readyState == WebSocket.OPEN) {
-            socket.send(message);
+            var msg = new proto.requestMsg();
+            msg.setType(1);
+            msg.setTextdata(message);
+            socket.send(msg.serializeBinary());
             document.getElementById("message-input").value = "";
         } else {
             alert("The socket is not open.");
@@ -83,13 +78,13 @@
 
     function send3(message) {
         for (let i = 0; i < 3; i++) {
-            send(message);
+            sendText(message);
         }
     }
 
     function send10(message) {
         for (let i = 0; i < 10; i++) {
-            send(message);
+            sendText(message);
         }
     }
 
@@ -97,7 +92,7 @@
         var theEvent = window.event || e;
         var code = theEvent.keyCode || theEvent.which || theEvent.charCode;
         if (code == 13) {
-            send(document.getElementById("message-input").value);
+            sendText(document.getElementById("message-input").value);
         }
     };
 
@@ -117,17 +112,12 @@
             var fileReader = new FileReader();
             fileReader.readAsArrayBuffer(file);
             fileReader.onload = function (e) {
-                // 获取到文件对象
                 var result = e.target.result;
-                // 创建一个 4个字节的数组缓冲区
-                var arrayBuffer = new ArrayBuffer(4);
-                var dataView = new DataView(arrayBuffer);
-                // 从第0个字节开始，写一个 int 类型的数据(dataType)，占4个字节
-                dataView.setInt32(0, dataType);
-                // 组装成 blob 对象
-                var blob = new Blob([arrayBuffer, result]);
-                // 发送到 webSocket 服务器端
-                socket.send(blob);
+                var buf = new Uint8Array(result);
+                var msg = new proto.requestMsg();
+                msg.setType(2);
+                msg.setPicdata(buf);
+                socket.send(msg.serializeBinary());
             }
         }
     }, false);

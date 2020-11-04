@@ -8,6 +8,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 
 public class BinaryWebSocketHandler extends SimpleChannelInboundHandler<BinaryWebSocketFrame> {
     @Override
@@ -26,4 +27,7 @@ public class BinaryWebSocketHandler extends SimpleChannelInboundHandler<BinaryWe
 
         TextWebSocketHandler.channelGroup.writeAndFlush(new BinaryWebSocketFrame(byteBuf));
     }
+
+
+
 }

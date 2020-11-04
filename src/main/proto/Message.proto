@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+message RequestMsg {
+    uint32 type = 1;
+    string token = 2;
+    string textData = 3;
+    bytes picData = 4;
+}
+
+message ResponseMsg {
+    uint32 type = 1;
+    string userName = 2;
+    string textData = 3;
+    bytes picData = 4;
+}
