@@ -8,7 +8,7 @@
 <body>
 <form onsubmit="return false;">
     <p>聊天框:</p>
-    <div style="border: 1px solid #CCC;height: 300px;overflow: scroll" id="server-msg-container"></div>
+    <div style="border: 1px solid #CCC;height: 800px;overflow: scroll" id="server-msg-container"></div>
     <p>
         <input type="text" id="message-input" name="message" value="七里翔"/>
         <input type="button" value="发送" onclick="sendText(this.form.message.value)"/>
@@ -21,7 +21,7 @@
     </p>
 </form>
 <script type="text/javascript">
-    var socket;
+    let socket;
     if (!window.WebSocket) {
         window.WebSocket = window.MozWebSocket;
     }
@@ -40,18 +40,28 @@
                 let picData = response.getPicdata();
                 let blob = new Blob([picData]);
                 let imageUrl = (window.URL || window.webkitURL).createObjectURL(blob);
-                console.log(imageUrl);
-                let imgHtml = "<p>" + response.getUsername() + "发送了图片：</p><img src='" + imageUrl + "' style='width: 100px;height: 100px;'>";
-                inpMsg.innerHTML += imgHtml.replace("data:application/octet-stream;", "data:image/png;") + "<br/>";
+                let img = new Image();
+                img.src = imageUrl;
+                inpMsg.innerHTML += "<p>" + response.getUsername() + "发送了图片：</p>";
+                inpMsg.appendChild(img);
+                inpMsg.innerHTML += "<br/>";
+                img.onload = function(){
+                    inpMsg.scrollTop = inpMsg.scrollHeight;
+                };
             }
             inpMsg.scrollTop = inpMsg.scrollHeight;
         };
         socket.onopen = function (event) {
-            var msg = new proto.requestMsg();
-            msg.setType(0);
-            msg.setToken("YlcK3yD86ll1TjvzQymOAUHyheynJeBf");
-            socket.send(msg.serializeBinary());
-            alert("进入七里翔聊天室");
+            let msg = new proto.requestMsg();
+            let token = getQueryVariable("token");
+            if (!token) {
+                alert("没有token！无权进入聊天室！")
+            } else {
+                msg.setType(0);
+                msg.setToken(token);
+                socket.send(msg.serializeBinary());
+                alert("进入七里翔聊天室");
+            }
         };
         socket.onclose = function (event) {
             alert("websocket关闭");
@@ -66,7 +76,7 @@
             return;
         }
         if (socket.readyState == WebSocket.OPEN) {
-            var msg = new proto.requestMsg();
+            let msg = new proto.requestMsg();
             msg.setType(1);
             msg.setTextdata(message);
             socket.send(msg.serializeBinary());
@@ -89,8 +99,8 @@
     }
 
     document.onkeydown = function (e) {
-        var theEvent = window.event || e;
-        var code = theEvent.keyCode || theEvent.which || theEvent.charCode;
+        let theEvent = window.event || e;
+        let code = theEvent.keyCode || theEvent.which || theEvent.charCode;
         if (code == 13) {
             sendText(document.getElementById("message-input").value);
         }
@@ -98,29 +108,46 @@
 
     // 发送图片
     document.querySelector('#send-pic').addEventListener('change', function (ev) {
-        var files = this.files;
+        let files = this.files;
         if (files && files.length) {
-            var file = files[0];
-            var fileType = file.type;
+            let file = files[0];
+            let fileType = file.type;
             // 表示传递的是 非图片
-            var dataType = 20;
+            let dataType = 20;
             if (!/^image/.test(fileType)) {
                 // 表示传递的是 图片
                 dataType = 10;
                 return;
             }
-            var fileReader = new FileReader();
+            let fileReader = new FileReader();
             fileReader.readAsArrayBuffer(file);
             fileReader.onload = function (e) {
-                var result = e.target.result;
-                var buf = new Uint8Array(result);
-                var msg = new proto.requestMsg();
+                let result = e.target.result;
+                let buf = new Uint8Array(result);
+                let msg = new proto.requestMsg();
                 msg.setType(2);
                 msg.setPicdata(buf);
-                socket.send(msg.serializeBinary());
+                let bytes = msg.serializeBinary();
+                if(bytes.byteLength > 102400) {
+                    alert("数据大于100K，发不了！")
+                } else {
+                    socket.send(bytes);
+                }
             }
         }
     }, false);
+
+
+    function getQueryVariable(variable)
+    {
+        var query = window.location.search.substring(1);
+        var vars = query.split("&");
+        for (var i=0;i<vars.length;i++) {
+            var pair = vars[i].split("=");
+            if(pair[0] == variable){return pair[1];}
+        }
+        return(false);
+    }
 </script>
 
 </body>
