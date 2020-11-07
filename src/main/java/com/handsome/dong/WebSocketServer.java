@@ -40,7 +40,8 @@ public class WebSocketServer {
                             .addLast(new ChunkedWriteHandler())
                             .addLast(new HttpObjectAggregator(10240))
                             .addLast(new WebSocketServerCompressionHandler())
-                            .addLast(new ByteToMessageDecoder())
+                            .addLast(new MessageToWebSocketFrameEncoder())
+                            .addLast(new WebSocketFrameToMessageDecoder())
                             .addLast(new WebSocketServerProtocolHandler("/chat", null, true, 10485760))
                             .addLast(new MyHandler());
                 }

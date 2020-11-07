@@ -8,7 +8,7 @@ import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 
 import java.util.List;
 
-public class ByteToMessageDecoder extends MessageToMessageDecoder<BinaryWebSocketFrame> {
+public class WebSocketFrameToMessageDecoder extends MessageToMessageDecoder<BinaryWebSocketFrame> {
 
     @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, BinaryWebSocketFrame binaryWebSocketFrame, List<Object> list) throws Exception {

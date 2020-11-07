@@ -1,19 +1,15 @@
 package com.handsome.dong;
 
 import com.handsome.dong.entity.Message;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -47,7 +43,7 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
         }
         if ("".equals(user)) {
             builder.setTextData("系统找不到你这个的信息……滚！");
-            channel.writeAndFlush(new BinaryWebSocketFrame(bytes2ByteBuf(builder.build().toByteArray())));
+            channel.writeAndFlush(builder.build());
             return;
         }
 
@@ -56,12 +52,12 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
         } else {
             Channel originalChannel = userChannelMap.get(user);
             builder.setTextData("你已被挤下线或未登录");
-            originalChannel.writeAndFlush(new BinaryWebSocketFrame(bytes2ByteBuf(builder.build().toByteArray())));
+            originalChannel.writeAndFlush(builder.build());
             channelGroup.remove(originalChannel);
             originalChannel.close();
         }
         builder.setTextData(user + "来了");
-        channelGroup.writeAndFlush(new BinaryWebSocketFrame(bytes2ByteBuf(builder.build().toByteArray())));
+        channelGroup.writeAndFlush(builder.build());
         idUserMap.put(channel.id().asLongText(), user);
         userChannelMap.put(user, channel);
         channelGroup.add(channel);
@@ -80,7 +76,7 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
             if (user == null) {
                 builder.setType(0);
                 builder.setTextData("你已被挤下线或未登录");
-                ctx.channel().writeAndFlush(new BinaryWebSocketFrame(bytes2ByteBuf(builder.build().toByteArray())));
+                ctx.channel().writeAndFlush(builder.build());
             } else {
                 builder.setType(requestMsg.getType());
                 builder.setUserName(idUserMap.get(id));
@@ -89,7 +85,7 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
                 } else {
                     builder.setPicData(requestMsg.getPicData());
                 }
-                channelGroup.writeAndFlush(new BinaryWebSocketFrame(bytes2ByteBuf(builder.build().toByteArray())));
+                channelGroup.writeAndFlush(builder.build());
                 System.out.println(idUserMap.get(id) + "说:" + requestMsg.getTextData());
             }
         }
@@ -129,11 +125,5 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
                     new TextWebSocketFrame(String.format("{\"user\":\"system\",\"msg\":\"%s退出了\"}", user)));
             onlineUsers.remove(user);
         }
-    }
-
-    private ByteBuf bytes2ByteBuf(byte[] bytes) {
-        ByteBuf byteBuf = Unpooled.buffer(bytes.length);
-        byteBuf.writeBytes(bytes);
-        return byteBuf;
     }
 }
