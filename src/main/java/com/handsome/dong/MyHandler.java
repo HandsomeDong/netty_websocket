@@ -28,22 +28,13 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
         Message.ResponseMsg.Builder builder = Message.ResponseMsg.newBuilder();
         builder.setType(0);
         String user = "";
-        if ("YlcK3yD86ll1TjvzQymOAUHyheynJeBf".equals(token)) {
-            user = "东哥";
-        }
-        if ("YlcK3yD86ll1TjvzQymOAUHyjeynJeBf".equals(token)) {
-            user = "菊长";
-        }
-        if ("YlcK3yD86ll1TjvzQymOAUHyqeynJeBf".equals(token)) {
-            user = "强哥";
-        }
-        if ("YlcK3yD86ll1TjvzQymOAUHyseynJeBf".equals(token)) {
-            user = "骚鸭子";
-        }
-        if ("YlcK3yD86ll1TjvzQymOAUHysyynJeBf".equals(token)) {
-            user = "神秘人";
-        }
-        if ("".equals(user)) {
+        //这里识别用户名  token生成很简单  HandsomeDong+用户名，再用base64编码
+        byte[] asBytes = Base64.getDecoder().decode(token);
+        String userTmp = new String(asBytes, StandardCharsets.UTF_8);
+        System.out.println(userTmp);
+        if (userTmp.startsWith("HandsomeDong")) {
+            user = userTmp.substring(userTmp.indexOf('g') + 1);
+        } else {
             builder.setTextData("系统找不到你这个的信息……滚！");
             channel.writeAndFlush(builder.build());
             return;
@@ -121,11 +112,9 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
         }
 
         if (onlineUsers.contains(user)) {
-            Channel originalChannel = userChannelMap.get(user);
             Message.ResponseMsg.Builder builder = Message.ResponseMsg.newBuilder();
             builder.setType(0);
             builder.setTextData(user + "走了");
-            originalChannel.writeAndFlush(builder.build());
             channelGroup.writeAndFlush(builder.build());
             onlineUsers.remove(user);
         }
