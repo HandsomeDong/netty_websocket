@@ -1,15 +1,17 @@
 package com.handsome.dong;
 
 import com.handsome.dong.entity.Message;
+
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -63,7 +65,6 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
         channelGroup.add(channel);
     }
 
-
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Message.RequestMsg requestMsg) {
         String id = ctx.channel().id().asLongText();
@@ -90,7 +91,6 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
             }
         }
     }
-
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
@@ -121,8 +121,12 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
         }
 
         if (onlineUsers.contains(user)) {
-            channelGroup.writeAndFlush(
-                    new TextWebSocketFrame(String.format("{\"user\":\"system\",\"msg\":\"%s退出了\"}", user)));
+            Channel originalChannel = userChannelMap.get(user);
+            Message.ResponseMsg.Builder builder = Message.ResponseMsg.newBuilder();
+            builder.setType(0);
+            builder.setTextData(user + "走了");
+            originalChannel.writeAndFlush(builder.build());
+            channelGroup.writeAndFlush(builder.build());
             onlineUsers.remove(user);
         }
     }
