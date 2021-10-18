@@ -3,7 +3,7 @@
     <meta charset="utf-8">
     <title>七里翔聊天室</title>
     <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
-    <script src="../js/message.js"></script>
+    <script src="../js/Message.js"></script>
 </head>
 <body>
 <form onsubmit="return false;">
@@ -31,7 +31,7 @@
         socket.onmessage = function (ev) {
             let inpMsg = document.getElementById("server-msg-container");
             let arrayBuffer = ev.data;
-            let response = proto.responseMsg.deserializeBinary(arrayBuffer);
+            let response = proto.ResponseMsg.deserializeBinary(arrayBuffer);
             if (response.getType() === 0) {
                 inpMsg.innerHTML += response.getTextdata() + "<br/>"
             } else if (response.getType() === 1) {
@@ -52,16 +52,15 @@
             inpMsg.scrollTop = inpMsg.scrollHeight;
         };
         socket.onopen = function (event) {
-            let msg = new proto.requestMsg();
-            let token = getQueryVariable("token");
-            if (!token) {
-                alert("没有token！无权进入聊天室！")
-            } else {
-                msg.setType(0);
-                msg.setToken(token);
-                socket.send(msg.serializeBinary());
-                alert("进入七里翔聊天室");
+            let msg = new proto.RequestMsg();
+            let name = getQueryVariable("name");
+            while (!name || name.trim() === '') {
+                name = prompt("请输入你的昵称:", "");
             }
+            msg.setType(0);
+            msg.setUsername(name);
+            socket.send(msg.serializeBinary());
+            alert("进入七里翔聊天室");
         };
         socket.onclose = function (event) {
             alert("websocket关闭");
@@ -75,8 +74,8 @@
         if (message === "") {
             return;
         }
-        if (socket.readyState == WebSocket.OPEN) {
-            let msg = new proto.requestMsg();
+        if (socket.readyState === WebSocket.OPEN) {
+            let msg = new proto.RequestMsg();
             msg.setType(1);
             msg.setTextdata(message);
             socket.send(msg.serializeBinary());
@@ -101,7 +100,7 @@
     document.onkeydown = function (e) {
         let theEvent = window.event || e;
         let code = theEvent.keyCode || theEvent.which || theEvent.charCode;
-        if (code == 13) {
+        if (code === 13) {
             sendText(document.getElementById("message-input").value);
         }
     };
@@ -124,7 +123,7 @@
             fileReader.onload = function (e) {
                 let result = e.target.result;
                 let buf = new Uint8Array(result);
-                let msg = new proto.requestMsg();
+                let msg = new proto.RequestMsg();
                 msg.setType(2);
                 msg.setPicdata(buf);
                 let bytes = msg.serializeBinary();
@@ -144,7 +143,7 @@
         var vars = query.split("&");
         for (var i=0;i<vars.length;i++) {
             var pair = vars[i].split("=");
-            if(pair[0] == variable){return pair[1];}
+            if(pair[0] === variable){return pair[1];}
         }
         return(false);
     }

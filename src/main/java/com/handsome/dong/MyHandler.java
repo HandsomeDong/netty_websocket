@@ -10,8 +10,6 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -23,37 +21,21 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
     public static Map<String, String> idUserMap = new HashMap<>();
     public static Map<String, Channel> userChannelMap = new HashMap<>();
 
-    private void login(String token, Channel channel) {
+    private void login(String userName, Channel channel) {
         //type 0:系统消息 1:文本消息 2.图片消息
         Message.ResponseMsg.Builder builder = Message.ResponseMsg.newBuilder();
         builder.setType(0);
-        String user = "";
-        //这里识别用户名  token生成很简单  HandsomeDong+用户名，再用base64编码
-        byte[] asBytes = Base64.getDecoder().decode(token);
-        String userTmp = new String(asBytes, StandardCharsets.UTF_8);
-        System.out.println(userTmp);
-        if (userTmp.startsWith("HandsomeDong")) {
-            user = userTmp.substring(userTmp.indexOf('g') + 1);
+        if (!onlineUsers.contains(userName)) {
+            onlineUsers.add(userName);
+            builder.setTextData(userName + "来了");
+            channelGroup.writeAndFlush(builder.build());
+            idUserMap.put(channel.id().asLongText(), userName);
+            userChannelMap.put(userName, channel);
+            channelGroup.add(channel);
         } else {
-            builder.setTextData("系统找不到你这个的信息……滚！");
+            builder.setTextData("该昵称已被使用！");
             channel.writeAndFlush(builder.build());
-            return;
         }
-
-        if (!onlineUsers.contains(user)) {
-            onlineUsers.add(user);
-        } else {
-            Channel originalChannel = userChannelMap.get(user);
-            builder.setTextData("你已被挤下线或未登录");
-            originalChannel.writeAndFlush(builder.build());
-            channelGroup.remove(originalChannel);
-            originalChannel.close();
-        }
-        builder.setTextData(user + "来了");
-        channelGroup.writeAndFlush(builder.build());
-        idUserMap.put(channel.id().asLongText(), user);
-        userChannelMap.put(user, channel);
-        channelGroup.add(channel);
     }
 
     @Override
@@ -62,12 +44,12 @@ public class MyHandler extends SimpleChannelInboundHandler<Message.RequestMsg> {
         String user = idUserMap.get(id);
         // type 0:登录 1:文本消息 2:图片消息
         if (requestMsg.getType() == 0) {
-            login(requestMsg.getToken(), ctx.channel());
+            login(requestMsg.getUserName(), ctx.channel());
         } else {
             Message.ResponseMsg.Builder builder = Message.ResponseMsg.newBuilder();
             if (user == null) {
                 builder.setType(0);
-                builder.setTextData("你已被挤下线或未登录");
+                builder.setTextData("你还没登录！刷新登录重新试试吧！");
                 ctx.channel().writeAndFlush(builder.build());
             } else {
                 builder.setType(requestMsg.getType());
